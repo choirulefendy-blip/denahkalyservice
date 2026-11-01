@@ -1,0 +1,12 @@
+# Sekali pakai: batalkan deployment GitHub Pages lama yang macet (dc98536) supaya terbit berikutnya bisa jalan.
+name: Bersihkan antrean Pages
+on: push
+permissions:
+  pages: write
+jobs:
+  batal:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -sS -X POST -H "Authorization: Bearer ${{ github.token }}" -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/pages/deployments/dc98536b465948fd0eb965a5e34e6344c7505aa9/cancel -w "\nHTTP %{http_code}\n"
