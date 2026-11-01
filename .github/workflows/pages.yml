@@ -1,0 +1,38 @@
+# Terbitkan Denah Service (folder public/) ke GitHub Pages setiap ada perubahan di branch main.
+# Sekali saja: Settings › Pages › Build and deployment › Source: GitHub Actions.
+name: Terbitkan Denah Service ke GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths: ['public/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  terbit:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pastikan tidak ada kunci GitHub yang ikut terbit
+        run: |
+          if grep -rIl -E 'github_pat_[A-Za-z0-9_]{20,}|ghp_[A-Za-z0-9]{30,}' public; then
+            echo "::error::Ada kunci GitHub di folder public/. Hapus dulu; kunci hanya dimasukkan di perangkat."; exit 1; fi
+          echo "aman: tidak ada kunci di public/"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - id: deploy
+        uses: actions/deploy-pages@v4

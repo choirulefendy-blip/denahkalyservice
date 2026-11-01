@@ -185,3 +185,6 @@ img, svg, video, canvas { max-width: 100%; }
 .map.editing .pin.dragging { cursor: grabbing; z-index: 5; box-shadow: 0 8px 22px rgba(0,0,0,.25); transform: translate(-50%, -50%) scale(1.08); }
 label.check { display: flex; align-items: center; gap: 8px; margin: 4px 0 10px; font-size: 14px; }
 label.check input { width: 18px; height: 18px; }
+.banner { padding: 10px 12px; border-radius: 9px; font-size: 13.5px; margin: 8px 0; } .banner.err { background: #F9E0DD; color: #8a1f17; }
+.howto { margin-top: 14px; font-size: 13.5px; color: var(--ink-2, #4D5345); } .howto summary { cursor: pointer; font-weight: 600; color: var(--olive, #475331); }
+.howto ol { padding-left: 20px; display: grid; gap: 6px; margin: 10px 0 0; }

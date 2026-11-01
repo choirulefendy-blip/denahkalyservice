@@ -1,7 +1,10 @@
 // Kaly Denah Service — buku tamu meja untuk service/pramusaji.
-// Data disimpan di Netlify Blobs lewat fungsi /api/* (lihat netlify/functions/api.mjs). Tiap perangkat sinkron berkala.
+// Halaman di GitHub Pages; data disimpan di repository GitHub PRIVAT lewat GitHub API (lihat backend.js & github.js).
+// Tiap perangkat disambungkan sekali oleh admin dengan kunci GitHub (fine-grained token) dan sinkron berkala.
 import { TABLES as BASE_TABLES, AREAS as BASE_AREAS, IMG } from './tables.js';
 import { ICONS } from './icons.js';
+import { Backend } from './backend.js';
+import { GhStore } from './github.js';
 
 // ---------- Utilitas ----------
 const $ = (s, r = document) => r.querySelector(s);
@@ -35,16 +38,19 @@ const now = () => Date.now() + S.skew;
 const today = () => dayOf(now());
 
 // ---------- API ----------
+// Sambungan perangkat ke repository data (disimpan di perangkat ini saja)
+let BE = null;
+const connOf = () => LS.get('conn');
+function connect(c) { BE = c?.repo && c?.token ? new Backend(c) : null; }
 async function api(path, body) {
-  let r;
-  try {
-    r = await fetch('/api/' + path, { method: body === undefined ? 'GET' : 'POST', headers: { 'content-type': 'application/json', ...(S.token ? { authorization: 'Bearer ' + S.token } : {}) }, body: body === undefined ? undefined : JSON.stringify(body), cache: 'no-store' });
-  } catch { setSync('off'); throw new Error('Tidak tersambung ke internet. Cek koneksi, lalu coba lagi.'); }
-  const data = (r.headers.get('content-type') || '').includes('json') ? await r.json().catch(() => ({})) : await r.text();
-  if (r.status === 401 && S.token && path !== 'login') { logout('Sesi habis. Masuk lagi dengan PIN.'); }
-  if (r.status === 404 && typeof data === 'string') throw new Error('Server denah belum aktif. Pastikan folder diunggah lengkap ke Netlify (termasuk folder netlify).');
-  if (!r.ok) throw new Error(data?.error || 'Terjadi kesalahan (' + r.status + ')');
-  return data;
+  if (!BE) { S.screen = 'connect'; render(); throw new Error('Perangkat ini belum disambungkan ke data.'); }
+  try { return await BE.call(path, body || {}, S.token); }
+  catch (e) {
+    if (e.offline) setSync('off');
+    if (e.auth) { S.screen = 'connect'; S.connMsg = e.message; render(); }
+    else if (e.status === 401 && S.token && path !== 'login') logout('Sesi habis. Masuk lagi dengan PIN.');
+    throw e;
+  }
 }
 const by = () => S.me || '';
 function setCfg(c) { S.cfg = c; LS.set('cfg', c); useTables(c.tables); if (S.sel && !T[S.sel]) S.sel = null; }
@@ -72,7 +78,7 @@ async function sync(force) {
   } catch (e) { if (S.token) setSync('off'); }
   finally { syncing = false; schedule(); }
 }
-// Hemat kuota Netlify: perangkat yang tidak disentuh lebih dari 5 menit memperbarui tiap 60 detik,
+// Hemat kuota GitHub API (5.000 permintaan per jam untuk semua perangkat): perangkat yang tidak disentuh lebih dari 5 menit memperbarui tiap 60 detik,
 // dan langsung memperbarui lagi saat disentuh.
 let lastAct = Date.now();
 const IDLE = 5 * 60000;
@@ -124,9 +130,25 @@ function modal(title, body, { ok = 'Simpan', danger = false, onOk, wide = false 
 }
 const logo = (v = 'olive') => `<img class="logo" src="assets/kaly-logo-${v}.svg" alt="kaly">`;
 
-// ---------- Layar: siapkan, masuk, pilih petugas ----------
+// ---------- Layar: sambungkan perangkat, siapkan, masuk, pilih petugas ----------
+function connectView() {
+  const c = connOf() || {};
+  return `<div class="gate"><div class="gate-card wide">${logo()}<h1>Sambungkan perangkat</h1>
+    <p class="muted">Dilakukan sekali per tablet/HP oleh Owner/admin. Data tamu disimpan di repository GitHub <b>privat</b>; perangkat butuh kunci GitHub (fine-grained token) yang hanya boleh membaca & menulis repository itu.</p>
+    ${S.connMsg ? `<p class="banner err">${esc(S.connMsg)}</p>` : ''}
+    <form id="connect" autocomplete="off">
+      <label class="fld"><span>Repository data</span><input name="repo" value="${esc(c.repo || 'choirulefendy-blip/denahkalyservice-data')}" placeholder="pemilik/nama-repository" autocapitalize="off" spellcheck="false"></label>
+      <label class="fld"><span>Kunci GitHub (diawali github_pat_)</span><input name="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…"></label>
+      <button class="btn btn-pri btn-lg full">Sambungkan</button></form>
+    <details class="howto"><summary>Cara membuat repository & kunci GitHub</summary><ol>
+      <li>GitHub › <b>New repository</b> › nama <b>denahkalyservice-data</b> › pilih <b>Private</b> › centang <i>Add a README</i> › Create.</li>
+      <li>GitHub › Settings › Developer settings › <b>Fine-grained tokens</b> › Generate new token.</li>
+      <li>Repository access: <b>Only select repositories</b> › pilih <b>denahkalyservice-data</b> saja.</li>
+      <li>Permissions › Repository permissions › <b>Contents: Read and write</b>. Expiration: pilih 1 tahun (atau sesuai kebijakan Anda).</li>
+      <li>Generate, salin kuncinya, tempel di atas. Kunci yang sama dipakai untuk semua perangkat service.</li></ol></details></div></div>`;
+}
 function setupView() {
-  return `<div class="gate"><div class="gate-card wide">${logo()}<h1>Siapkan Denah Service</h1>
+  return `<div class="gate"><div class="gate-card wide">${logo()}<h1>${S.reset ? 'Buat PIN baru' : 'Siapkan Denah Service'}</h1>${S.reset ? '<p class="banner err">Permintaan reset PIN ditemukan (file reset-pin.txt). Buat PIN staf & admin baru. Daftar meja, petugas, dan riwayat tamu tetap; semua perangkat perlu masuk lagi dengan PIN baru.</p>' : ''}
     <p class="muted">Dilakukan sekali oleh Owner/manajer. Buat dua PIN angka: <b>PIN staf</b> untuk tablet/HP service sehari-hari, dan <b>PIN admin</b> untuk pengaturan, koreksi, dan hapus data.</p>
     <form id="setup" class="grid2" autocomplete="off">
       <label class="fld"><span>PIN staf (4–8 angka)</span><input name="ps" type="password" inputmode="numeric" maxlength="8" required></label>
@@ -267,9 +289,9 @@ function setView() {
   const c = S.cfg;
   return `<div class="set"><form id="set" class="card"><h3>Petugas & tampilan</h3>
       <label class="fld"><span>Nama petugas service (satu per baris)</span><textarea name="staff" rows="6">${esc((c.staff || []).join('\n'))}</textarea></label>
-      <div class="grid2"><label class="fld"><span>Perangkat memperbarui denah setiap</span><select name="poll">${[10, 15, 20, 30, 60].map((n) => `<option value="${n}" ${c.pollSec === n ? 'selected' : ''}>${n} detik</option>`).join('')}</select></label>
+      <div class="grid2"><label class="fld"><span>Perangkat memperbarui denah setiap</span><select name="poll">${[15, 20, 30, 60].map((n) => `<option value="${n}" ${c.pollSec === n ? 'selected' : ''}>${n} detik</option>`).join('')}</select></label>
       <label class="fld"><span>Tandai duduk lama setelah</span><select name="long">${[60, 90, 120, 150, 180, 240].map((n) => `<option value="${n}" ${c.longMin === n ? 'selected' : ''}>${n / 60} jam</option>`).join('')}</select></label></div>
-      <p class="hint">Makin sering memperbarui, makin cepat denah di perangkat lain berubah, tapi makin banyak kuota (kredit) Netlify terpakai. <b>30 detik</b> disarankan untuk paket Netlify gratis. Perangkat yang mencatat langsung berubah tanpa menunggu, dan perangkat yang tidak disentuh 5 menit otomatis memperbarui tiap 60 detik.</p>
+      <p class="hint">Makin sering memperbarui, makin cepat denah di perangkat lain berubah, tapi makin banyak kuota GitHub terpakai (5.000 permintaan per jam untuk semua perangkat). <b>30 detik</b> disarankan. Perangkat yang mencatat langsung berubah tanpa menunggu, dan perangkat yang tidak disentuh 5 menit otomatis memperbarui tiap 60 detik.</p>
       <button class="btn btn-pri">Simpan</button></form>
     <form id="pins" class="card"><h3>Ganti PIN</h3><div class="grid2">
       <label class="fld"><span>PIN staf baru</span><input name="ps" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="kosongkan bila tidak diganti"></label>
@@ -277,7 +299,9 @@ function setView() {
       <button class="btn">Simpan PIN</button>
       <h3 class="mt">Keamanan</h3><p class="muted sm">Mengeluarkan semua tablet & HP yang sedang masuk. Semua perangkat harus memasukkan PIN lagi. Pakai ini setelah mengganti PIN bila ada perangkat hilang atau staf berhenti.</p>
       <button type="button" class="btn btn-danger" data-act="logoutAll">${ic('lock', 16)} Keluarkan semua perangkat</button></form>
-    <div class="card"><h3>Tentang data</h3><p class="muted sm">Data tamu tersimpan di Netlify Blobs pada project Netlify ini (Data & Storage → Blobs, store <b>kaly-denah</b>). Riwayat bisa diunduh sebagai file Excel (CSV) dari halaman Riwayat. Aplikasi ini terpisah dari Kaly Ops dan tidak mengubah data kasir.</p></div></div>`;
+    <div class="card"><h3>Data & perangkat ini</h3><p class="muted sm">Data tamu tersimpan sebagai file di repository GitHub privat <b>${esc(connOf()?.repo || '')}</b> (setiap perubahan tercatat sebagai commit). Riwayat bisa diunduh sebagai file Excel (CSV) dari halaman Riwayat. Aplikasi ini terpisah dari Kaly Ops dan tidak mengubah data kasir.</p>
+      <p class="muted sm">Kunci GitHub tersimpan di perangkat ini saja. Bila perangkat hilang, hapus kunci itu di GitHub (Settings › Developer settings › Fine-grained tokens), buat kunci baru, lalu sambungkan ulang perangkat lain.</p>
+      <button type="button" class="btn btn-ghost danger" data-act="disconnect">${ic('log-out', 15)} Putuskan perangkat ini dari data</button></div></div>`;
 }
 
 // ---------- Render ----------
@@ -285,7 +309,8 @@ function render() {
   const root = $('#root');
   const ae = document.activeElement, fid = ae && root.contains(ae) && ae.id ? ae.id : null, sel = fid && 'selectionStart' in ae ? [ae.selectionStart, ae.selectionEnd] : null;
   const keepScroll = $('#map-wrap') ? [$('#map-wrap').scrollLeft, $('#map-wrap').scrollTop] : null, pScroll = $('#panel')?.scrollTop;
-  if (S.screen === 'setup') root.innerHTML = setupView();
+  if (S.screen === 'connect') root.innerHTML = connectView();
+  else if (S.screen === 'setup') root.innerHTML = setupView();
   else if (S.screen === 'login') root.innerHTML = loginView(S.loginMsg);
   else if (S.screen === 'who') root.innerHTML = whoView();
   else root.innerHTML = shell();
@@ -443,9 +468,8 @@ function doExport() {
   modal('Unduh riwayat tamu (Excel)', `<div class="grid2"><label class="fld"><span>Dari tanggal</span><input name="f" type="date" value="${d.slice(0, 8)}01" max="${today()}"></label><label class="fld"><span>Sampai tanggal</span><input name="t" type="date" value="${d}" max="${today()}"></label></div><p class="hint">File CSV bisa dibuka di Excel atau Google Sheets. Maksimal 62 hari sekali unduh.</p>`, {
     ok: 'Unduh', onOk: async (m) => {
       const f = m.querySelector('[name=f]').value, t = m.querySelector('[name=t]').value;
-      const r = await fetch(`/api/export?from=${f}&to=${t}`, { headers: { authorization: 'Bearer ' + S.token } });
-      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || 'Gagal mengunduh');
-      const url = URL.createObjectURL(await r.blob());
+      const r = await api('export', { from: f, to: t });
+      const url = URL.createObjectURL(new Blob([r.csv], { type: 'text/csv;charset=utf-8' }));
       const a = document.createElement('a'); a.href = url; a.download = `tamu-kaly-${f}_${t}.csv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
     } });
 }
@@ -559,6 +583,7 @@ document.addEventListener('click', async (e) => {
     else if (a === 'export') doExport();
     else if (a === 'who') { S.screen = 'who'; render(); }
     else if (a === 'logout') modal('Keluar dari perangkat ini?', '<p>Perangkat ini perlu PIN lagi untuk membuka denah.</p>', { ok: 'Keluar', onOk: () => logout() });
+    else if (a === 'disconnect') modal('Putuskan perangkat ini?', '<p>Kunci GitHub dihapus dari perangkat ini. Data tamu di GitHub tidak terhapus. Untuk memakai lagi, admin perlu menyambungkan ulang.</p>', { ok: 'Putuskan', danger: true, onOk: () => { LS.set('conn', null); connect(null); logout(); S.screen = 'connect'; render(); } });
     else if (a === 'logoutAll') modal('Keluarkan semua perangkat?', '<p>Semua tablet dan HP harus memasukkan PIN lagi. Perangkat ini tetap masuk.</p>', { ok: 'Keluarkan semua', danger: true, onOk: async () => { const r = await api('config', { logoutAll: true }); S.token = r.token; LS.set('token', r.token); toast('Semua perangkat lain sudah dikeluarkan'); } });
   }
 });
@@ -579,6 +604,19 @@ document.addEventListener('submit', async (e) => {
   e.preventDefault();
   const f = e.target, v = (n) => f.querySelector(`[name=${n}]`)?.value ?? '';
   if (f.id === 'arrive') return doArrive(f);
+  if (f.id === 'connect') {
+    const repo = v('repo').trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '').replace(/\/+$/, ''), token = v('token').trim();
+    if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) return toast('Tulis repository sebagai pemilik/nama, mis. choirulefendy-blip/denahkalyservice-data', 'warn');
+    if (token.length < 20) return toast('Tempel kunci GitHub', 'warn');
+    const btn = f.querySelector('button'); btn.disabled = true;
+    try {
+      const info = await new GhStore({ repo, token }).check();
+      if (!info.private) { btn.disabled = false; return toast('Repository ini PUBLIK: data tamu bisa dilihat siapa saja. Ubah jadi Private dulu di GitHub › Settings.', 'err', { ms: 8000 }); }
+      LS.set('conn', { repo, token, branch: info.branch }); connect(connOf()); S.connMsg = '';
+      toast('Perangkat tersambung ke ' + info.name); start();
+    } catch (err) { btn.disabled = false; toast(err.message, 'err', { ms: 6000 }); }
+    return;
+  }
   if (f.id === 'note') return doNote(f.dataset.k, v('text'));
   if (f.id === 'who-other') { const n = v('n').trim(); if (!n) return toast('Isi nama petugas', 'warn'); S.me = n; LS.set('me', n); S.screen = 'main'; render(); sync(true); return; }
   if (f.id === 'setup') {
@@ -627,13 +665,17 @@ function signedIn(r) {
 
 // ---------- Mulai ----------
 async function start() {
+  connect(connOf());
+  if (!BE) { S.screen = 'connect'; return render(); }
   try {
     const h = await api('hello');
     S.skew = h.now - Date.now();
+    S.reset = !!h.reset;
     if (!h.setup) { S.screen = 'setup'; return render(); }
     if (!S.token) { S.screen = 'login'; return render(); }
     S.screen = S.me ? 'main' : 'who'; render(); sync(true);
   } catch (e) {
+    if (e.auth || S.screen === 'connect') return;
     $('#root').innerHTML = `<div class="gate"><div class="gate-card">${logo()}<h1>Tidak bisa terhubung</h1><p class="muted">${esc(e.message)}</p><button class="btn btn-pri" onclick="location.reload()">Coba lagi</button></div></div>`;
   }
 }

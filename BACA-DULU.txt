@@ -1,86 +1,75 @@
-KALY DENAH SERVICE - CARA MEMASANG
-==================================
+KALY DENAH SERVICE - CARA MEMASANG (GitHub)
+===========================================
 
 Aplikasi terpisah untuk tim service: mencatat tamu datang, tamu pulang, dan catatan
-per meja di denah Kaly Eatery (42 meja bawaan, bisa ditambah lewat Atur meja). Data tersimpan di Netlify Blobs (penyimpanan
-bawaan Netlify), tidak memakai Supabase dan tidak mengubah data Kaly Ops.
+per meja di denah Kaly Eatery (42 meja bawaan, bisa ditambah lewat Atur meja).
+Sejak 1 Nov 2026 SEPENUHNYA DI GITHUB, tanpa Netlify:
+  - Halaman  : GitHub Pages dari repository publik  choirulefendy-blip/denahkalyservice
+  - Data tamu: repository PRIVAT                    choirulefendy-blip/denahkalyservice-data
+               (setiap catatan = satu file JSON, setiap perubahan tercatat sebagai commit)
+Tidak memakai Supabase dan tidak mengubah data Kaly Ops.
 
-PEMBARUAN 1 NOV 2026 (denah baru + atur meja)
-   - Denah memakai gambar denah baru Kaly Eatery; 42 meja di posisi sesuai gambar.
-   - ATUR MEJA (PIN admin): di layar Denah ketuk "Atur meja".
-       Tambah meja : ketuk tempat kosong di denah (atau tombol Tambah meja),
-                     isi kode (mis. PR7), jumlah kursi, area (boleh area baru), gazebo.
-       Pindah meja : seret mejanya.
-       Ubah / hapus: ketuk mejanya. Meja yang sedang terisi tamu tidak bisa dihapus.
-       Ketuk Selesai bila sudah. Perubahan langsung terlihat di semua perangkat.
-   Cara memasang: drag folder ini lagi ke project kaly-denah di Netlify (Deploys).
-   Data tamu, PIN, dan petugas tidak berubah. Satu kali unggah memakai 15 kredit.
+1. TERBITKAN HALAMAN (sekali)
+   GitHub > repository denahkalyservice > Settings > Pages >
+   Build and deployment > Source: GitHub Actions.
+   Tunggu tab Actions selesai (centang hijau, 1-2 menit). Alamatnya:
+     https://choirulefendy-blip.github.io/denahkalyservice/
+   Setiap perubahan di folder public/ pada branch main terbit otomatis. Gratis.
 
-PEMBARUAN 24 OKT 2026 (pas layar)
-   Tampilan kini selalu pas dengan lebar layar HP/tablet: tidak perlu geser
-   kanan-kiri, dan layar tidak lagi membesar sendiri saat mengetik di iPhone.
-   Sudah memakai Denah Service? Cukup drag folder ini lagi ke project
-   kaly-denah di Netlify (Deploys). Data tamu dan PIN tidak berubah.
-   Satu kali unggah memakai 15 kredit Netlify.
+2. BUAT REPOSITORY DATA (sekali)
+   GitHub > New repository > nama: denahkalyservice-data > pilih PRIVATE >
+   centang "Add a README file" > Create repository.
+   WAJIB privat: berisi nama tamu & catatan. Aplikasi menolak repository publik.
 
-ISI FOLDER
-  netlify.toml          pengaturan Netlify (jangan dihapus)
-  public/               halaman aplikasi
-  netlify/functions/    server kecil /api untuk menyimpan data (jangan dihapus)
+3. BUAT KUNCI GITHUB (sekali)
+   GitHub > foto profil > Settings > Developer settings > Personal access tokens >
+   Fine-grained tokens > Generate new token:
+   - Token name     : Denah Service
+   - Expiration     : 1 tahun (catat tanggalnya; sebelum habis buat kunci baru)
+   - Repository access: Only select repositories > denahkalyservice-data SAJA
+   - Permissions > Repository permissions > Contents: Read and write
+   Generate token > salin (diawali github_pat_). Simpan di tempat aman.
 
-1. UNGGAH KE NETLIFY (sekali)
-   a. Masuk ke app.netlify.com dengan akun Anda.
-   b. Projects > Add new project > Deploy manually.
-   c. Drag SELURUH folder "kaly-denah" (folder yang berisi netlify.toml),
-      bukan folder public saja. Harus dalam keadaan login.
-   d. Tunggu status Published.
-   e. Ganti alamat: Project configuration > General > Change project name >
-      isi "kaly-denah" (atau nama lain yang tersedia).
-      Alamatnya menjadi https://kaly-denah.netlify.app
-
-2. SIAPKAN (sekali, oleh Owner/manajer)
-   Buka alamatnya. Muncul layar "Siapkan Denah Service":
+4. SAMBUNGKAN SETIAP TABLET/HP (sekali per perangkat, oleh admin)
+   Buka alamat di langkah 1 > layar "Sambungkan perangkat":
+   - Repository data: choirulefendy-blip/denahkalyservice-data
+   - Kunci GitHub   : tempel kunci dari langkah 3
+   Perangkat pertama lalu menampilkan "Siapkan Denah Service":
    - PIN staf  (4-8 angka) untuk tablet/HP service sehari-hari
-   - PIN admin (4-8 angka) untuk Pengaturan, koreksi data lama, dan hapus data
+   - PIN admin (4-8 angka) untuk Pengaturan, Atur meja, koreksi & hapus data
    - Nama petugas service, satu per baris
-   Lakukan segera setelah unggah, karena orang pertama yang membuka alamat
-   itulah yang membuat PIN.
-
-3. PAKAI DI TABLET / HP SERVICE
-   Buka alamatnya > masukkan PIN staf > pilih nama petugas.
    Di Chrome: menu > Tambahkan ke layar utama, supaya terbuka seperti aplikasi.
+
+5. PAKAI SEHARI-HARI
+   Masukkan PIN staf > pilih nama petugas.
    - Tamu datang : ketuk meja kosong > jumlah tamu, nama, catatan > Catat tamu datang
    - Catatan     : ketuk meja terisi > tulis catatan atau ketuk label cepat
    - Pindah/gabung meja, ubah jumlah tamu: tombol di panel meja
    - Tamu pulang : tombol oranye Tamu pulang > meja kosong lagi
-     (salah tekan? ketuk Batalkan di pesan bawah, atau ikon putar di daftar Baru pulang)
-   - Riwayat     : semua kunjungan per tanggal, lama duduk, jam tersibuk,
-                   dan tombol Unduh Excel (CSV) untuk laporan
+   - Riwayat     : semua kunjungan per tanggal + Unduh Excel (CSV)
+   - ATUR MEJA (PIN admin): Denah > Atur meja. Ketuk tempat kosong untuk menambah
+     meja, seret untuk memindah, ketuk meja untuk ubah/hapus, lalu Selesai.
 
-KALAU ADA KENDALA
-   - Muncul "Server denah belum aktif": folder netlify/functions tidak ikut
-     terunggah. Ulangi langkah 1 dengan men-drag seluruh folder kaly-denah
-     sambil login. Cara lain lewat Netlify CLI di komputer yang ada Node.js:
-       npx netlify-cli deploy --prod        (jalankan di dalam folder kaly-denah)
-   - Lupa PIN admin: di Netlify > project > Project configuration >
-     Environment variables, tambahkan DENAH_ADMIN_PIN berisi PIN darurat
-     (4-8 angka), lalu unggah ulang folder. Masuk dengan PIN darurat itu,
-     ganti PIN di Pengaturan, lalu hapus lagi variabelnya. Data tamu aman.
+KEAMANAN (PENTING)
+   - Kunci GitHub hanya dimasukkan di perangkat, TIDAK PERNAH ditaruh di kode/repository.
+   - Siapa pun yang memegang kunci itu bisa membaca & mengubah data tamu. PIN memisahkan
+     peran staf/admin di aplikasi, tetapi tidak melindungi data dari pemegang kunci.
+   - Tablet/HP hilang atau staf berhenti: hapus kuncinya di GitHub (Fine-grained tokens >
+     Revoke), buat kunci baru (langkah 3), sambungkan ulang perangkat yang masih dipakai,
+     lalu Pengaturan > Keluarkan semua perangkat.
+   - Lupa PIN admin: buka repository denahkalyservice-data di GitHub > Add file >
+     Create new file > nama: reset-pin.txt (isi bebas) > Commit. Buka aplikasi di
+     perangkat yang sudah tersambung: muncul "Buat PIN baru". Daftar meja, petugas,
+     dan riwayat tamu tetap.
 
-KUOTA NETLIFY (PENTING untuk paket gratis)
-   Paket gratis Netlify memberi 300 kredit per bulan untuk SEMUA project di akun,
-   termasuk kaly-ops. Kalau habis, semua project di akun dihentikan sementara
-   (muncul "Site not available") sampai kredit terisi lagi di periode berikutnya.
-   Yang memakai kredit:
-   - setiap kali unggah (deploy) ke produksi: 15 kredit
-   - permintaan ke server & waktu proses fungsi (sinkron antar perangkat)
-   Perkiraan Denah Service: 3 perangkat menyala 12 jam sehari, sinkron tiap
-   30 detik, sekitar 60-130 kredit per bulan. Jaga hemat dengan:
-   - biarkan "memperbarui setiap 30 detik" (Pengaturan, PIN admin)
-   - jangan sering unggah ulang
-   - cek pemakaian kredit di halaman Usage tim Netlify Anda setiap minggu
-   Perangkat yang tidak disentuh 5 menit otomatis memperbarui tiap 60 detik.
+BATAS GITHUB
+   - 5.000 permintaan per jam untuk SEMUA perangkat yang memakai kunci yang sama.
+     Sinkron tiap 30 detik: kira-kira 120 permintaan/jam per perangkat saat tidak ada
+     perubahan, jadi aman untuk sekitar 10-20 perangkat. Biarkan "memperbarui setiap
+     30 detik" di Pengaturan.
+   - Bila muncul "Batas akses GitHub per jam habis", tunggu beberapa menit.
 
 DATA & CADANGAN
-   Data tersimpan di Netlify > project > Data & Storage > Blobs > kaly-denah.
-   Unduh Excel (CSV) dari halaman Riwayat secara rutin sebagai cadangan.
+   Semua data ada di repository denahkalyservice-data (folder v/ per tanggal,
+   t/ penanda meja terisi, config.json pengaturan). Riwayat lengkap tersimpan sebagai
+   commit. Unduh Excel (CSV) dari halaman Riwayat untuk laporan.
