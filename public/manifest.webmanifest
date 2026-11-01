@@ -1,0 +1,13 @@
+{
+  "name": "Kaly Denah Service",
+  "short_name": "Denah Kaly",
+  "description": "Buku tamu meja Kaly Eatery",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F2F2F3",
+  "theme_color": "#475331",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
