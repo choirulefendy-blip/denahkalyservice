@@ -9,11 +9,11 @@ Cara memasang & memakai: lihat **BACA-DULU.txt**.
 
 | Folder / file | Isi |
 |---|---|
-| `public/` | Aplikasi (HTML, CSS, JavaScript tanpa build). Diterbitkan ke GitHub Pages oleh `.github/workflows/pages.yml`. |
+| `public/` | Aplikasi (HTML, CSS, JavaScript tanpa build). GitHub Pages terbit dari branch `main` (root); `index.html` di akar mengalihkan ke `public/`. |
 | `public/backend.js` | Aturan aplikasi (kunci meja, PIN staf/admin, riwayat, ekspor CSV, Atur meja) yang berjalan di browser. |
 | `public/github.js` | Penyimpanan di repository GitHub privat (contents API, tulis bersyarat, antrean tulis). |
 | `public/tables.js` | 42 meja bawaan & ukuran gambar denah (`public/assets/denah.png`). |
 | `dev/` | Uji lokal tanpa internet: `node dev/server.mjs` (aplikasi + tiruan GitHub API), `node dev/backend_test.mjs` (54 uji; `RACE=0.25` untuk mensimulasikan tulis bersamaan). |
-| `index.html` | Pengalih ke `public/` (bila Pages diatur dari branch). |
+| `index.html` | Pengalih ke `public/`. |
 
-**Jangan pernah** menaruh kunci GitHub di repository ini (repository publik). Workflow terbit menolak bila ada.
+**Jangan pernah** menaruh kunci GitHub di repository ini (repository publik).

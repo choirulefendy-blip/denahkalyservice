@@ -11,10 +11,10 @@ Tidak memakai Supabase dan tidak mengubah data Kaly Ops.
 
 1. TERBITKAN HALAMAN (sekali)
    GitHub > repository denahkalyservice > Settings > Pages >
-   Build and deployment > Source: GitHub Actions.
-   Tunggu tab Actions selesai (centang hijau, 1-2 menit). Alamatnya:
+   Build and deployment > Source: Deploy from a branch > main / (root) > Save.
+   (Sudah aktif.) Tunggu tab Actions selesai (centang hijau, 1-2 menit). Alamatnya:
      https://choirulefendy-blip.github.io/denahkalyservice/
-   Setiap perubahan di folder public/ pada branch main terbit otomatis. Gratis.
+   Setiap perubahan di branch main terbit otomatis. Gratis.
 
 2. BUAT REPOSITORY DATA (sekali)
    GitHub > New repository > nama: denahkalyservice-data > pilih PRIVATE >
